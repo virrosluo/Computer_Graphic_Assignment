@@ -1,0 +1,62 @@
+import tinyobjloader
+import numpy as np
+import OpenGL.GL as GL
+from libs import transform as T
+from libs.buffer import *
+
+class ObjModel:
+    def __init__(self, vert_shader, frag_shader, model_path):
+        # Load the obj file using tinyobjloader
+        self.vertices, self.colors = self.load_obj(model_path)
+
+        # Setup shader, VAO, and UManager
+        self.vao = VAO()
+        self.shader = Shader(vertex_source=vert_shader, fragment_source=frag_shader)
+        self.uma = UManager(self.shader)
+
+    def load_obj(self, obj_file):
+        reader = tinyobjloader.ObjReader()
+        config = tinyobjloader.ObjReaderConfig()
+
+        if not reader.ParseFromFile(obj_file, config):
+            raise Exception(f"Failed to load {obj_file}: {reader.Warning() + reader.Error()}")
+
+        attrib = reader.GetAttrib()
+        shapes = reader.GetShapes()
+
+        vertices = []
+        colors = []  # Assign default colors for now
+        for shape in shapes:
+            for idx in shape.mesh.indices:
+                vertex_idx = idx.vertex_index
+                vertex = attrib.vertices[3 * vertex_idx: 3 * (vertex_idx + 1)]
+                vertices.append(vertex)
+
+                # Placeholder color (use white for now)
+                colors.append([1.0, 0.0, 1.0])
+
+        return np.array(vertices, dtype=np.float32), np.array(colors, dtype=np.float32)
+
+    def setup(self):
+        self.vao.add_vbo(0, self.vertices, ncomponents=3, dtype=GL.GL_FLOAT, normalized=False, stride=0, offset=None)
+        self.vao.add_vbo(1, self.colors, ncomponents=3, dtype=GL.GL_FLOAT, normalized=False, stride=0, offset=None)
+
+        GL.glUseProgram(self.shader.render_idx)
+
+        # Set the projection matrix
+        projection = T.ortho(-20, 20, -20, 20, -20, 20)
+        self.uma.upload_uniform_matrix4fv(projection, "projection", True)
+
+    def draw(self, x_angle, y_angle, z_angle):
+        self.vao.activate()
+        GL.glUseProgram(self.shader.render_idx)
+
+        # Apply rotation transformations
+        modelview = (
+            T.rotate(axis=(1, 0, 0), angle=x_angle) @
+            T.rotate(axis=(0, 1, 0), angle=y_angle) @
+            T.rotate(axis=(0, 0, 1), angle=z_angle)
+        )
+        self.uma.upload_uniform_matrix4fv(modelview, "modelview", True)
+
+        GL.glDrawArrays(GL.GL_TRIANGLES, 0, len(self.vertices))
