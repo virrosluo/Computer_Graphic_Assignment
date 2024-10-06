@@ -4,8 +4,9 @@ import OpenGL.GL as GL
 from libs import transform as T
 from libs.buffer import *
 from PIL import Image
+from model_interface import ModelAbstract
 
-class ObjModel1:
+class ObjModel1(ModelAbstract):
     def __init__(self, vert_shader, frag_shader, model_path, texture_path):
         # Load the obj file using tinyobjloader
         self.vertices, self.texcoords, self.colors = self.load_obj(model_path)
@@ -13,9 +14,7 @@ class ObjModel1:
         self.texture_path = texture_path
 
         # Setup shader, VAO, and UManager
-        self.vao = VAO()
-        self.shader = Shader(vertex_source=vert_shader, fragment_source=frag_shader)
-        self.uma = UManager(self.shader)
+        super().__init__(vert_shader, frag_shader)
 
     def load_obj(self, obj_file):
         reader = tinyobjloader.ObjReader()
@@ -85,16 +84,12 @@ class ObjModel1:
         self.texture_id = self.load_texture(self.texture_path)
         GL.glBindTexture(GL.GL_TEXTURE_2D, self.texture_id)
 
-    def draw(self, x_angle, y_angle, z_angle):
+    def draw(self, **kwargs):
         self.vao.activate()
         GL.glUseProgram(self.shader.render_idx)
 
         # Apply rotation transformations
-        modelview = (
-            T.rotate(axis=(1, 0, 0), angle=x_angle) @
-            T.rotate(axis=(0, 1, 0), angle=y_angle) @
-            T.rotate(axis=(0, 0, 1), angle=z_angle)
-        )
+        modelview = self.get_view_matrix(**kwargs)
         self.uma.upload_uniform_matrix4fv(modelview, "modelview", True)
 
         # Bind the texture before drawing

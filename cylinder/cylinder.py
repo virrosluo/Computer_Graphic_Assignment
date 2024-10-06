@@ -2,8 +2,9 @@ import numpy as np
 import OpenGL.GL as GL
 from libs import transform as T
 from libs.buffer import VAO, UManager, Shader
+from model_interface import ModelAbstract
 
-class Cylinder:
+class Cylinder(ModelAbstract):
     def __init__(self, vert_shader, frag_shader, N, R=1, height=2):
         """
         Initialize the cylinder.
@@ -34,11 +35,9 @@ class Cylinder:
         self.indices = self.generate_indices()
 
         # Initialize VAO and shader
-        self.vao = VAO()
+        super().__init__(vert_shader, frag_shader)
         self.vao_top = VAO()
         self.vao_bottom = VAO()
-        self.shader = Shader(vertex_source=vert_shader, fragment_source=frag_shader)
-        self.uma = UManager(self.shader)
 
     def generate_vertices(self):
         """
@@ -113,7 +112,7 @@ class Cylinder:
         projection = T.ortho(-2, 2, -2, 2, -2, 2)
         self.uma.upload_uniform_matrix4fv(projection, "projection", True)
 
-    def draw(self, x_angle, y_angle, z_angle):
+    def draw(self, **kwargs):
         """
         Draw the cylinder using OpenGL.
         :param x_angle: Rotation angle around the x-axis
@@ -124,11 +123,7 @@ class Cylinder:
         GL.glUseProgram(self.shader.render_idx)
 
         # Create a rotation matrix based on angles
-        modelview = T.rotate(axis=(1, 0, 0), angle=x_angle) @ \
-                    T.rotate(axis=(0, 1, 0), angle=y_angle) @ \
-                    T.rotate(axis=(0, 0, 1), angle=z_angle)
-
-        # Upload modelview matrix to the shader
+        modelview = self.get_view_matrix(**kwargs)
         self.uma.upload_uniform_matrix4fv(modelview, "modelview", True)
 
         # Draw the cylinder using element buffer and triangle strip

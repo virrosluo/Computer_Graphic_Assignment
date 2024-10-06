@@ -2,8 +2,9 @@ from libs import transform as T
 from libs.buffer import *
 import OpenGL.GL as GL
 import numpy as np
+from model_interface import ModelAbstract
 
-class Cube:
+class Cube(ModelAbstract):
     def __init__(self, vert_shader, frag_shader):
         # Define vertices for the cube
         self.vertices = np.array([
@@ -39,11 +40,7 @@ class Cube:
             0, 1, 5, 0, 5, 4,  # Bottom face
         ], dtype=np.int32)
 
-        self.vao = VAO()
-
-        # Compile the shader
-        self.shader = Shader(vertex_source=vert_shader, fragment_source=frag_shader)
-        self.uma = UManager(self.shader)
+        super().__init__(vert_shader, frag_shader)
 
     def setup(self):
         # Setup vertex buffer for the cube vertices
@@ -62,16 +59,12 @@ class Cube:
         projection = T.ortho(-2, 2, -2, 2, -2, 2)
         self.uma.upload_uniform_matrix4fv(projection, "projection", True)
 
-    def draw(self, x_angle, y_angle, z_angle):
+    def draw(self, **kwargs):
         self.vao.activate()
         GL.glUseProgram(self.shader.render_idx)
 
         # Create a rotation matrix based on angles
-        modelview = T.rotate(axis=(1, 0, 0), angle=x_angle) @ \
-                    T.rotate(axis=(0, 1, 0), angle=y_angle) @ \
-                    T.rotate(axis=(0, 0, 1), angle=z_angle)
-
-        # Upload modelview matrix to the shader
+        modelview = self.get_view_matrix(**kwargs)
         self.uma.upload_uniform_matrix4fv(modelview, "modelview", True)
 
         # Draw the cube using element buffer

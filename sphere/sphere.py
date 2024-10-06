@@ -1,22 +1,18 @@
 import numpy as np
-from pyglet import model
+from model_interface import ModelAbstract
 
 from libs import transform as T
 from libs.buffer import *
 
-class Sphere():
+class Sphere(ModelAbstract):
     def __init__(self, vert_shader, frag_shader, r=1, N=15):
+        super().__init__(vert_shader, frag_shader)
         self.N = N
         self.r = r
         
         self.vertices = self.generate_vertices() / 2
         self.colors = np.ones(shape=(self.vertices.shape[0], 3)).astype(np.float32) * np.array([[1, 0, 1]])
         self.indices = self.generate_triangle_strip_indices(N)
-
-        self.vao = VAO()
-
-        self.shader = Shader(vertex_source=vert_shader, fragment_source=frag_shader)
-        self.uma = UManager(self.shader)
 
     def generate_vertices(self):
         theta_step = 2 * np.pi / self.N
@@ -70,14 +66,14 @@ class Sphere():
 
         GL.glUseProgram(self.shader.render_idx)
         
-        projection = T.ortho(-1, 1, -1, 1, -1, 1)
+        projection = T.ortho(-1, 1, -1, 1, -10, 10)
         self.uma.upload_uniform_matrix4fv(projection, 'projection', True)
 
-    def draw(self, x_angle, y_angle, z_angle):
+    def draw(self, **kwargs):
         self.vao.activate()
         GL.glUseProgram(self.shader.render_idx)
 
-        modelview = T.rotate(axis=(1, 0, 0), angle=x_angle) @ T.rotate(axis=(0, 1, 0), angle=y_angle) @ T.rotate(axis=(0, 0, 1), angle=z_angle)
+        modelview = self.get_view_matrix(**kwargs)
         self.uma.upload_uniform_matrix4fv(modelview, "modelview", True)
 
         GL.glDrawElements(GL.GL_TRIANGLE_STRIP, len(self.indices) * 2, GL.GL_UNSIGNED_INT, None)

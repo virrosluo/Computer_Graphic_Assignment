@@ -2,8 +2,9 @@ import numpy as np
 import OpenGL.GL as GL
 from libs import transform as T
 from libs.buffer import VAO, UManager, Shader
+from model_interface import ModelAbstract
 
-class Mesh3D:
+class Mesh3D(ModelAbstract):
     def __init__(self, vert_shader, frag_shader, func, x_range, y_range, resolution):
         """
         :param vert_shader: The vertex shader source
@@ -14,11 +15,9 @@ class Mesh3D:
         :param resolution: The number of points along x and y axis
         """
         self.vertices, self.indices, self.colors = self.generate_mesh(func, x_range, y_range, resolution)
-        self.vao = VAO()
 
         # Compile shader
-        self.shader = Shader(vertex_source=vert_shader, fragment_source=frag_shader)
-        self.uma = UManager(self.shader)
+        super().__init__(vert_shader, frag_shader)
 
     def generate_mesh(self, func, x_range, y_range, resolution):
         """
@@ -81,7 +80,7 @@ class Mesh3D:
         projection = T.ortho(-2, 2, -2, 2, -2, 2)
         self.uma.upload_uniform_matrix4fv(projection, "projection", True)
 
-    def draw(self, x_angle, y_angle, z_angle):
+    def draw(self, **kwargs):
         """
         Draw the mesh using OpenGL.
         """
@@ -89,9 +88,7 @@ class Mesh3D:
         GL.glUseProgram(self.shader.render_idx)
 
         # Create rotation matrix based on angles
-        modelview = T.rotate(axis=(1, 0, 0), angle=x_angle) @ \
-                    T.rotate(axis=(0, 1, 0), angle=y_angle) @ \
-                    T.rotate(axis=(0, 0, 1), angle=z_angle)
+        modelview = self.get_view_matrix(**kwargs)
 
         # Upload modelview matrix to shader
         self.uma.upload_uniform_matrix4fv(modelview, "modelview", True)

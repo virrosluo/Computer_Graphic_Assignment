@@ -10,9 +10,11 @@ from cylinder.cylinder import Cylinder
 from mesh_3d.mesh_3d import Mesh3D
 from model.model import ObjModel
 from model.model1 import ObjModel1
-from viewer import Viewer
 
-import math
+from view_folder.viewer import Viewer
+from view_folder.moving_viewer import MovingViewer
+from view_folder.rotating_viewer import RotatingViewer
+
 import glfw
 
 if __name__ == "__main__":
@@ -20,7 +22,9 @@ if __name__ == "__main__":
     if not glfw.init():
         raise Exception("Failed to initialize GLFW")
 
-    view = Viewer()
+    # view = Viewer()
+    # view = MovingViewer(move_speed=5, mouse_sentitive=0.1)
+    view = RotatingViewer()
 
     # model = Triangle(
     #     vert_shader="triangle/triangle.vert",
@@ -47,10 +51,10 @@ if __name__ == "__main__":
     #     frag_shader="line_segment/line_segment.frag"
     # )
 
-    # model = Tetrahedron(
-    #     vert_shader="tetrahedron/tetrahedron.vert",
-    #     frag_shader="tetrahedron/tetrahedron.frag"
-    # )
+    model = Tetrahedron(
+        vert_shader="tetrahedron/tetrahedron.vert",
+        frag_shader="tetrahedron/tetrahedron.frag"
+    )
 
     # model = Cube(
     #     vert_shader="cube/cube.vert",
@@ -88,12 +92,12 @@ if __name__ == "__main__":
     #     frag_shader='model/model.frag'
     # )
 
-    model = ObjModel1(
-        model_path='model/cottage_obj.obj', 
-        vert_shader='model/model1.vert',
-        frag_shader='model/model1.frag',
-        texture_path='model/Liberty-Pavimentazione-1.bmp'
-    )
+    # model = ObjModel1(
+    #     model_path='model/cottage_obj.obj', 
+    #     vert_shader='model/model1.vert',
+    #     frag_shader='model/model1.frag',
+    #     texture_path='model/Liberty-Pavimentazione-1.bmp'
+    # )
     model.setup()
 
     view.add(model)
