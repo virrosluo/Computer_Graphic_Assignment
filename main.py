@@ -14,17 +14,28 @@ from model.model1 import ObjModel1
 from view_folder.viewer import Viewer
 from view_folder.moving_viewer import MovingViewer
 from view_folder.rotating_viewer import RotatingViewer
+from view_folder.multiple_viewers import MultiplesView, Camera
 
 import glfw
+
+WIN_WIDTH = 640
+WIN_HEIGHT = 480
 
 if __name__ == "__main__":
 
     if not glfw.init():
         raise Exception("Failed to initialize GLFW")
 
-    # view = Viewer()
-    # view = MovingViewer(move_speed=5, mouse_sentitive=0.1)
-    view = RotatingViewer()
+    # view = Viewer(width=WIN_WIDTH, height=WIN_HEIGHT)
+    # view = RotatingViewer(width=WIN_WIDTH, height=WIN_HEIGHT)
+    # view = MovingViewer(move_speed=5, mouse_sentitive=0.1, width=WIN_WIDTH, height=WIN_HEIGHT)
+    view = MultiplesView(
+        move_speed=5, 
+        mouse_sentitive=0.1,
+        width=WIN_WIDTH, height=WIN_HEIGHT,
+        cameras=[Camera(WIN_WIDTH / WIN_HEIGHT)],
+        generate_default_camera=True
+    )
 
     # model = Triangle(
     #     vert_shader="triangle/triangle.vert",

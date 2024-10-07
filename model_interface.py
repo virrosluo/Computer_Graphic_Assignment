@@ -16,10 +16,10 @@ class ModelAbstract:
         modelview = T.lookat(eye=kwargs["camera_pos"], target=kwargs["camera_front"], up=kwargs["camera_up"])
         return modelview
     
-    def get_view_matrix(self, **kwargs):
-        return T.rotate(axis=(1, 0, 0), angle=kwargs["x_angle"]) @ \
-               T.rotate(axis=(0, 1, 0), angle=kwargs["y_angle"]) @ \
-                T.rotate(axis=(0, 0, 1), angle=kwargs["z_angle"])
+    # def get_view_matrix(self, **kwargs):
+    #     return T.rotate(axis=(1, 0, 0), angle=kwargs["x_angle"]) @ \
+    #            T.rotate(axis=(0, 1, 0), angle=kwargs["y_angle"]) @ \
+    #             T.rotate(axis=(0, 0, 1), angle=kwargs["z_angle"])
 
 
     def draw(self, **kwargs):
