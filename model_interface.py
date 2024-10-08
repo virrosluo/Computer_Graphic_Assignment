@@ -5,7 +5,6 @@ import OpenGL.GL as GL
 class ModelAbstract:
     def __init__(self, vert_shader, frag_shader):
         self.vao = VAO()
-
         self.shader = Shader(vertex_source=vert_shader, fragment_source=frag_shader)
         self.uma = UManager(self.shader)
 

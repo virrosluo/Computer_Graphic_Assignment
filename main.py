@@ -30,6 +30,8 @@ if __name__ == "__main__":
     # view = RotatingViewer(width=WIN_WIDTH, height=WIN_HEIGHT)
     # view = MovingViewer(move_speed=5, mouse_sentitive=0.1, width=WIN_WIDTH, height=WIN_HEIGHT)
     view = MultiplesView(
+        vert_shader="multiple_cams.vert",
+        frag_shader="multiple_cams.frag",
         move_speed=5, 
         mouse_sentitive=0.1,
         width=WIN_WIDTH, height=WIN_HEIGHT,

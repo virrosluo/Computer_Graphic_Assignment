@@ -2,7 +2,8 @@ import glfw
 import numpy as np
 import OpenGL.GL as GL
 from typing import List
-from libs.transform import perspective, lookat, normalized, vec
+from model_interface import ModelAbstract
+from libs.transform import perspective, lookat, normalized, vec, ortho
 
 FRAME_PER_SECOND = 1 / 60.0
 
@@ -66,9 +67,87 @@ class Camera:
         self.pitch += yoffset * self.mouse_sentitive
         self.pitch = -89.0 if self.pitch < -89.0 else self.pitch
 
+
+class CameraViewObj(ModelAbstract):
+    def __init__(self, vert_shader, frag_shader, camera_info: Camera):
+        super().__init__(vert_shader, frag_shader)
+        self.camera_info = camera_info
+
+        self.colors = np.array([[1, 0, 0] for _ in range(5)], dtype=np.float32)
+        self.indices = np.array([
+            0, 1, 2, 
+            0, 1, 4,
+            0, 3, 4,
+            0, 2, 3,
+            1, 3, 2,
+            1, 4, 3
+        ], dtype=np.int32)
+
+    def update_view_object(self):
+        vertices = self.get_pyramid_vertices()
+        GL.glBindBuffer(GL.GL_ARRAY_BUFFER, self.vao.vbo[0])
+        GL.glBufferSubData(GL.GL_ARRAY_BUFFER, 0, vertices.nbytes, vertices)
+
+
+    def setup(self):
+        vertices = self.get_pyramid_vertices()
+        self.vao.add_vbo(0, vertices, ncomponents=3, dtype=GL.GL_FLOAT, normalized=False, stride=0, offset=None, draw_type=GL.GL_DYNAMIC_DRAW)
+        self.vao.add_vbo(1, self.colors[self.indices], ncomponents=3, dtype=GL.GL_FLOAT, normalized=False, stride=0, offset=None)
+        self.vao.add_ebo(indices=self.indices)
+
+        # Use the shader program
+        GL.glUseProgram(self.shader.render_idx)
+
+        # Upload orthogonal projection matrix
+        projection = ortho(-2, 2, -2, 2, -10, 10)
+        self.uma.upload_uniform_matrix4fv(projection, "projection", True)
+
+    def draw(self, **kwargs):
+        self.vao.activate()
+        GL.glUseProgram(self.shader.render_idx)
+
+        modelview = self.get_view_matrix(**kwargs)
+        self.uma.upload_uniform_matrix4fv(modelview, "modelview", True)
+
+        GL.glDrawElements(GL.GL_TRIANGLES, len(self.indices), GL.GL_UNSIGNED_INT, None)
+        self.vao.deactivate()
+
+    def get_pyramid_vertices(self):
+        distance = self.camera_info.far - self.camera_info.near
+
+        camera_right = np.cross(self.camera_info.front, self.camera_info.up)
+        camera_right /= np.linalg.norm(camera_right)
+
+        camera_up = np.cross(camera_right, self.camera_info.front)
+        camera_up /= np.linalg.norm(camera_up)
+
+        base_height = np.tan(np.radians(self.camera_info.fov)) * distance
+        base_width = base_height * self.camera_info.aspect_ratio
+
+        apex = self.camera_info.position + self.camera_info.front * self.camera_info.near
+        base_center = apex + self.camera_info.front * distance
+        
+        half_width = base_width / 2
+        half_height = base_height / 2
+
+        base_top_right = base_center + camera_right * half_width + camera_up * half_height
+        base_top_left = base_center - camera_right * half_width + camera_up * half_height
+        base_bottom_left = base_center - camera_right * half_width - camera_up * half_height
+        base_bottom_right = base_center + camera_right * half_width - camera_up * half_height
+
+        return np.asarray([
+            apex,
+            base_top_right,
+            base_top_left,
+            base_bottom_left,
+            base_bottom_right
+        ], dtype=np.float32)
+
 class MultiplesView:
     def __init__(
             self, 
+            vert_shader,
+            frag_shader,
             move_speed=5, 
             mouse_sentitive=0.1, 
             cameras = [], 
@@ -104,8 +183,6 @@ class MultiplesView:
         GL.glClearColor(1.0, 1.0, 1.0, 1.0)
         GL.glEnable(GL.GL_DEPTH_TEST)
 
-        self.drawables = []
-
         self.aspect_ratio = width / height
         self.active_camera_idx = 0
 
@@ -118,7 +195,13 @@ class MultiplesView:
         else:
             self.cameras: List[Camera] = cameras
 
-        print(len(self.cameras))
+        self.drawables = []
+
+        self.view_objs = []
+        for camera in self.cameras:
+            view_obj = CameraViewObj(vert_shader=vert_shader, frag_shader=frag_shader, camera_info=camera)
+            view_obj.setup()
+            self.view_objs.append(view_obj)
 
         # Mouse state
         self.last_x = width // 2
@@ -135,12 +218,24 @@ class MultiplesView:
             active_camera = self.cameras[self.active_camera_idx]
             active_camera.update_camera_status()
 
+            GL.glPolygonMode(GL.GL_FRONT_AND_BACK, GL.GL_FILL)
             for drawable in self.drawables:
                 drawable.draw(
                     camera_pos=active_camera.position,
                     camera_front=active_camera.front, 
                     camera_up=active_camera.up
                 )
+
+            GL.glPolygonMode(GL.GL_FRONT_AND_BACK, GL.GL_LINE)
+            for idx, view_obj in enumerate(self.view_objs):
+                if idx == self.active_camera_idx:
+                    continue
+                else:
+                    view_obj.draw(
+                        camera_pos=active_camera.position,
+                        camera_front=active_camera.front, 
+                        camera_up=active_camera.up
+                    )
 
             glfw.swap_buffers(self.win)
             glfw.poll_events()
@@ -177,6 +272,8 @@ class MultiplesView:
     def swap_camera(self, key):
         if key >= glfw.KEY_0 and key <= glfw.KEY_9:
             self.active_camera_idx = key - 48
+            for view_obj in self.view_objs:
+                view_obj.update_view_object()
 
     def on_key(self, _win, key, _scancode, action, _mods):
         """ 'Q' or 'Escape' quits """
