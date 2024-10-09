@@ -36,16 +36,12 @@ class Tetrahedron(ModelAbstract):
         # Setup the element buffer for the indices of the faces
         self.vao.add_ebo(indices=self.indices)
 
-        # Use the shader program
-        GL.glUseProgram(self.shader.render_idx)
-
-        # Upload orthogonal projection matrix
-        projection = T.ortho(-2, 2, -2, 2, -10, 10)
-        self.uma.upload_uniform_matrix4fv(projection, "projection", True)
-
     def draw(self, **kwargs):
         self.vao.activate()
         GL.glUseProgram(self.shader.render_idx)
+
+        projection = T.perspective(fovy=kwargs["fovy"], aspect=kwargs["aspect"], near=kwargs["near"], far=kwargs["far"])
+        self.uma.upload_uniform_matrix4fv(projection, "projection", True)
 
         modelview = self.get_view_matrix(**kwargs)
         self.uma.upload_uniform_matrix4fv(modelview, "modelview", True)

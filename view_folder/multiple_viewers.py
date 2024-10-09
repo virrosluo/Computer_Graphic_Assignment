@@ -95,16 +95,12 @@ class CameraViewObj(ModelAbstract):
         self.vao.add_vbo(1, self.colors[self.indices], ncomponents=3, dtype=GL.GL_FLOAT, normalized=False, stride=0, offset=None)
         self.vao.add_ebo(indices=self.indices)
 
-        # Use the shader program
-        GL.glUseProgram(self.shader.render_idx)
-
-        # Upload orthogonal projection matrix
-        projection = ortho(-2, 2, -2, 2, -10, 10)
-        self.uma.upload_uniform_matrix4fv(projection, "projection", True)
-
     def draw(self, **kwargs):
         self.vao.activate()
         GL.glUseProgram(self.shader.render_idx)
+
+        projection = perspective(fovy=kwargs["fovy"], aspect=kwargs["aspect"], near=kwargs["near"], far=kwargs["far"])
+        self.uma.upload_uniform_matrix4fv(projection, "projection", True)
 
         modelview = self.get_view_matrix(**kwargs)
         self.uma.upload_uniform_matrix4fv(modelview, "modelview", True)
@@ -223,7 +219,11 @@ class MultiplesView:
                 drawable.draw(
                     camera_pos=active_camera.position,
                     camera_front=active_camera.front, 
-                    camera_up=active_camera.up
+                    camera_up=active_camera.up,
+                    fovy=active_camera.fov,
+                    aspect=active_camera.aspect_ratio,
+                    near=active_camera.near,
+                    far=active_camera.far
                 )
 
             GL.glPolygonMode(GL.GL_FRONT_AND_BACK, GL.GL_LINE)
@@ -234,7 +234,11 @@ class MultiplesView:
                     view_obj.draw(
                         camera_pos=active_camera.position,
                         camera_front=active_camera.front, 
-                        camera_up=active_camera.up
+                        camera_up=active_camera.up,
+                        fovy=active_camera.fov,
+                        aspect=active_camera.aspect_ratio,
+                        near=active_camera.near,
+                        far=active_camera.far
                     )
 
             glfw.swap_buffers(self.win)
