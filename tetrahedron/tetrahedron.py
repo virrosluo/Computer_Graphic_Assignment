@@ -27,6 +27,8 @@ class Tetrahedron(ModelAbstract):
         self.indices = np.array([0, 1, 2, 0, 1, 3, 0, 3, 2, 1, 2, 3], dtype=np.int32)
 
     def setup(self):
+        super().setup()
+
         # Setup vertex buffer for the tetrahedron vertices
         self.vao.add_vbo(0, self.vertices, ncomponents=3, dtype=GL.GL_FLOAT, normalized=False, stride=0, offset=None)
 

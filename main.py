@@ -111,7 +111,7 @@ if __name__ == "__main__":
     #     frag_shader='model/model1.frag',
     #     texture_path='model/Liberty-Pavimentazione-1.bmp'
     # )
-    model.setup()
+    # model.setup()
 
     view.add(model)
     view.run()

@@ -4,12 +4,13 @@ import OpenGL.GL as GL
 
 class ModelAbstract:
     def __init__(self, vert_shader, frag_shader):
-        self.vao = VAO()
-        self.shader = Shader(vertex_source=vert_shader, fragment_source=frag_shader)
-        self.uma = UManager(self.shader)
+        self.vert_shader = vert_shader
+        self.frag_shader = frag_shader
 
     def setup(self):
-        pass
+        self.vao = VAO()
+        self.shader = Shader(vertex_source=self.vert_shader, fragment_source=self.frag_shader)
+        self.uma = UManager(self.shader)
 
     def get_view_matrix(self, **kwargs):
         modelview = T.lookat(eye=kwargs["camera_pos"], target=kwargs["camera_front"], up=kwargs["camera_up"])

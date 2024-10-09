@@ -1,4 +1,5 @@
 import glfw
+import copy
 import numpy as np
 import OpenGL.GL as GL
 from typing import List
@@ -90,6 +91,8 @@ class CameraViewObj(ModelAbstract):
 
 
     def setup(self):
+        super().setup()
+
         vertices = self.get_pyramid_vertices()
         self.vao.add_vbo(0, vertices, ncomponents=3, dtype=GL.GL_FLOAT, normalized=False, stride=0, offset=None, draw_type=GL.GL_DYNAMIC_DRAW)
         self.vao.add_vbo(1, self.colors[self.indices], ncomponents=3, dtype=GL.GL_FLOAT, normalized=False, stride=0, offset=None)
@@ -158,26 +161,26 @@ class MultiplesView:
         glfw.window_hint(glfw.OPENGL_PROFILE, glfw.OPENGL_CORE_PROFILE)
         glfw.window_hint(glfw.RESIZABLE, False)
         
-        self.win = glfw.create_window(width, height, "Viewer", None, None)
+        self.main_win = glfw.create_window(width, height, "Main View", None, None)
+        self.camera_win = glfw.create_window(width, height, "Camera View", None, None)
 
-        if not self.win:
+        if not self.main_win or not self.camera_win:
             raise Exception("Failed to create GLFW Window")
-        
-        # make win's OpenGL context current; no OpenGL calls can happen before
-        glfw.make_context_current(self.win)
 
-        # register event handlers
-        glfw.set_key_callback(self.win, self.on_key)
-        glfw.set_cursor_pos_callback(self.win, self.on_mouse_move)
-        glfw.set_input_mode(self.win, glfw.CURSOR, glfw.CURSOR_DISABLED)
-
-        # useful message to check OpenGL renderer characteristics
-        print('OpenGL', GL.glGetString(GL.GL_VERSION).decode() + ', GLSL',
-              GL.glGetString(GL.GL_SHADING_LANGUAGE_VERSION).decode() +
-              ', Renderer', GL.glGetString(GL.GL_RENDERER).decode())
-        
+        glfw.make_context_current(self.main_win)
+        print('Main View OpenGL', GL.glGetString(GL.GL_VERSION).decode() + ', GLSL', GL.glGetString(GL.GL_SHADING_LANGUAGE_VERSION).decode() + ', Renderer', GL.glGetString(GL.GL_RENDERER).decode())
         GL.glClearColor(1.0, 1.0, 1.0, 1.0)
         GL.glEnable(GL.GL_DEPTH_TEST)
+
+        glfw.make_context_current(self.camera_win)
+        print('Camera View OpenGL', GL.glGetString(GL.GL_VERSION).decode() + ', GLSL', GL.glGetString(GL.GL_SHADING_LANGUAGE_VERSION).decode() + ', Renderer', GL.glGetString(GL.GL_RENDERER).decode())
+        GL.glClearColor(1.0, 1.0, 1.0, 1.0)
+        GL.glEnable(GL.GL_DEPTH_TEST)
+        
+        # register event handlers
+        glfw.set_key_callback(self.main_win, self.on_key)
+        glfw.set_cursor_pos_callback(self.main_win, self.on_mouse_move)
+        glfw.set_input_mode(self.main_win, glfw.CURSOR, glfw.CURSOR_DISABLED)
 
         self.aspect_ratio = width / height
         self.active_camera_idx = 0
@@ -191,13 +194,13 @@ class MultiplesView:
         else:
             self.cameras: List[Camera] = cameras
 
-        self.drawables = []
-
-        self.view_objs = []
-        for camera in self.cameras:
-            view_obj = CameraViewObj(vert_shader=vert_shader, frag_shader=frag_shader, camera_info=camera)
+        glfw.make_context_current(self.main_win)
+        self.view_objs = [CameraViewObj(vert_shader=vert_shader, frag_shader=frag_shader, camera_info=camera) for camera in self.cameras]
+        for view_obj in self.view_objs:
             view_obj.setup()
-            self.view_objs.append(view_obj)
+        
+        self.main_drawables = []
+        self.camera_drawables = []
 
         # Mouse state
         self.last_x = width // 2
@@ -208,14 +211,16 @@ class MultiplesView:
         self.mouse_sensitive = mouse_sentitive
 
     def run(self):
-        while not glfw.window_should_close(self.win):
+        while not glfw.window_should_close(self.main_win) and not glfw.window_should_close(self.camera_win):
+# --------------------------------------------------------------- MAIN VIEW
+            glfw.make_context_current(self.main_win)            
             GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
 
-            active_camera = self.cameras[self.active_camera_idx]
+            active_camera = self.cameras[0]
             active_camera.update_camera_status()
 
             GL.glPolygonMode(GL.GL_FRONT_AND_BACK, GL.GL_FILL)
-            for drawable in self.drawables:
+            for drawable in self.main_drawables:
                 drawable.draw(
                     camera_pos=active_camera.position,
                     camera_front=active_camera.front, 
@@ -227,25 +232,59 @@ class MultiplesView:
                 )
 
             GL.glPolygonMode(GL.GL_FRONT_AND_BACK, GL.GL_LINE)
-            for idx, view_obj in enumerate(self.view_objs):
-                if idx == self.active_camera_idx:
-                    continue
-                else:
-                    view_obj.draw(
-                        camera_pos=active_camera.position,
-                        camera_front=active_camera.front, 
-                        camera_up=active_camera.up,
-                        fovy=active_camera.fov,
-                        aspect=active_camera.aspect_ratio,
-                        near=active_camera.near,
-                        far=active_camera.far
-                    )
+            for view_obj in self.view_objs[1:]:
+                view_obj.draw(
+                    camera_pos=active_camera.position,
+                    camera_front=active_camera.front, 
+                    camera_up=active_camera.up,
+                    fovy=active_camera.fov,
+                    aspect=active_camera.aspect_ratio,
+                    near=active_camera.near,
+                    far=active_camera.far
+                )
 
-            glfw.swap_buffers(self.win)
+            glfw.swap_buffers(self.main_win)
+
+# --------------------------------------------------------------- CAMERA VIEW
+            glfw.make_context_current(self.camera_win)            
+            GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
+
+            active_camera = self.cameras[self.active_camera_idx]
+            active_camera.update_camera_status()
+
+            GL.glPolygonMode(GL.GL_FRONT_AND_BACK, GL.GL_FILL)
+            for drawable in self.camera_drawables:
+                drawable.draw(
+                    camera_pos=active_camera.position,
+                    camera_front=active_camera.front, 
+                    camera_up=active_camera.up,
+                    fovy=active_camera.fov,
+                    aspect=active_camera.aspect_ratio,
+                    near=active_camera.near,
+                    far=active_camera.far
+                )
+            glfw.swap_buffers(self.camera_win)
+
+# --------------------------------------------------------------- POLL EVENT
             glfw.poll_events()
 
     def add(self, *drawables):
-        self.drawables.extend(drawables)
+        main_drawables = copy.deepcopy(drawables)
+        glfw.make_context_current(self.main_win)
+        for obj in main_drawables:
+            obj.setup()
+
+        glfw.make_context_current(self.camera_win)
+        for obj in drawables:
+            obj.setup()
+
+        self.main_drawables.extend(main_drawables)
+        self.camera_drawables.extend(drawables)
+
+    def update_camview_obj(self):
+        glfw.make_context_current(self.main_win)
+        for view_obj in self.view_objs:
+            view_obj.update_view_object()
 
     def move(self, key):
         current_camera = self.cameras[self.active_camera_idx]
@@ -257,6 +296,8 @@ class MultiplesView:
             current_camera.go_left()
         elif key == glfw.KEY_D:  # Move right
             current_camera.go_right()
+        
+        self.update_camview_obj()
 
     def on_mouse_move(self, _win, xpos, ypos):
         if self.first_mouse:
@@ -273,21 +314,22 @@ class MultiplesView:
         current_camera.rotate_x(xoffset)
         current_camera.rotate_y(yoffset)
 
+        self.update_camview_obj()
+
     def swap_camera(self, key):
         if key >= glfw.KEY_0 and key <= glfw.KEY_9:
             self.active_camera_idx = key - 48
-            for view_obj in self.view_objs:
-                view_obj.update_view_object()
 
     def on_key(self, _win, key, _scancode, action, _mods):
         """ 'Q' or 'Escape' quits """
         if action == glfw.PRESS or action == glfw.REPEAT:
             if key == glfw.KEY_ESCAPE or key == glfw.KEY_Q:
-                glfw.set_window_should_close(self.win, True)
+                glfw.set_window_should_close(self.main_win, True)
+                glfw.set_window_should_close(self.camera_win, True)
 
             self.move(key=key)
             self.swap_camera(key=key)
 
-            for drawable in self.drawables:
+            for drawable in self.main_drawables + self.camera_drawables:
                 if hasattr(drawable, 'key_handler'):
                     drawable.key_handler(key)
