@@ -40,6 +40,8 @@ class MovingViewer:
         self.yaw = -90.0  # Initialize facing forward (negative z-axis)
         self.pitch = 0.0
 
+        self.aspect_ratio = width / height
+
         # Mouse state
         self.last_x = width // 2
         self.last_y = height // 2
@@ -55,13 +57,25 @@ class MovingViewer:
             GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
 
             for drawable in self.drawables:
-                drawable.draw(camera_pos=self.camera_pos, camera_front=self.camera_front, camera_up=self.camera_up)
+                drawable.draw(
+                    camera_pos=self.camera_pos, 
+                    camera_front=self.camera_front, 
+                    camera_up=self.camera_up,
+                    fovy=45,
+                    aspect=self.aspect_ratio,
+                    near=0.1,
+                    far=100
+                )
 
             glfw.swap_buffers(self.win)
 
             glfw.poll_events()
 
     def add(self, *drawables):
+        glfw.make_context_current(self.win)
+        for drawable in drawables:
+            drawable.setup()
+
         self.drawables.extend(drawables)
 
     def move(self, key):

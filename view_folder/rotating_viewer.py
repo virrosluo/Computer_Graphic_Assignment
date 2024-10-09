@@ -1,4 +1,5 @@
 import glfw
+import numpy as np
 import OpenGL.GL as GL
 
 ANGLE_PER_FRAME = 360 // 360
@@ -31,6 +32,12 @@ class RotatingViewer:
         GL.glClearColor(1.0, 1.0, 1.0, 1.0)
         GL.glEnable(GL.GL_DEPTH_TEST)
 
+        self.camera_pos = np.array([0.0, 0.0, -5.0], dtype=np.float32)
+        self.camera_front = np.array([0.0, 0.0, -1.0], dtype=np.float32)
+        self.camera_up = np.array([0.0, 1.0, 0.0], dtype=np.float32)
+
+        self.aspect_ratio = width / height
+
         self.x_angle, self.y_angle, self.z_angle = 0, 0, 0
 
         self.drawables = []
@@ -40,13 +47,27 @@ class RotatingViewer:
             GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
 
             for drawable in self.drawables:
-                drawable.draw(x_angle=self.x_angle, y_angle=self.y_angle, z_angle=self.z_angle)
+                drawable.draw(
+                    x_angle=self.x_angle,
+                    y_angle=self.y_angle,
+                    z_angle=self.z_angle,
+                    camera_pos=self.camera_pos, 
+                    camera_front=self.camera_front, 
+                    camera_up=self.camera_up,
+                    fovy=45,
+                    aspect=self.aspect_ratio,
+                    near=0.1,
+                    far=100
+                )
 
             glfw.swap_buffers(self.win)
 
             glfw.poll_events()
 
     def add(self, *drawables):
+        glfw.make_context_current(self.win)
+        for drawable in drawables:
+            drawable.setup()
         self.drawables.extend(drawables)
 
     def on_key(self, _win, key, _scancode, action, _mods):

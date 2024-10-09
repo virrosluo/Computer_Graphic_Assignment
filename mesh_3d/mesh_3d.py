@@ -64,6 +64,8 @@ class Mesh3D(ModelAbstract):
         """
         Set up OpenGL buffers and shaders.
         """
+        super().setup()
+
         # Setup vertex buffer
         self.vao.add_vbo(0, self.vertices, ncomponents=3, dtype=GL.GL_FLOAT, normalized=False, stride=0, offset=None)
 
@@ -76,10 +78,6 @@ class Mesh3D(ModelAbstract):
         # Use shader program
         GL.glUseProgram(self.shader.render_idx)
 
-        # Upload orthogonal projection matrix
-        projection = T.ortho(-2, 2, -2, 2, -2, 2)
-        self.uma.upload_uniform_matrix4fv(projection, "projection", True)
-
     def draw(self, **kwargs):
         """
         Draw the mesh using OpenGL.
@@ -87,10 +85,11 @@ class Mesh3D(ModelAbstract):
         self.vao.activate()
         GL.glUseProgram(self.shader.render_idx)
 
+        projection = T.perspective(fovy=kwargs["fovy"], aspect=kwargs["aspect"], near=kwargs["near"], far=kwargs["far"])
+        self.uma.upload_uniform_matrix4fv(projection, "projection", True)
+
         # Create rotation matrix based on angles
         modelview = self.get_view_matrix(**kwargs)
-
-        # Upload modelview matrix to shader
         self.uma.upload_uniform_matrix4fv(modelview, "modelview", True)
 
         # Draw the mesh using triangles

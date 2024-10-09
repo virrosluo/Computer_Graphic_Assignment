@@ -27,17 +27,24 @@ if __name__ == "__main__":
         raise Exception("Failed to initialize GLFW")
 
     # view = Viewer(width=WIN_WIDTH, height=WIN_HEIGHT)
-    # view = RotatingViewer(width=WIN_WIDTH, height=WIN_HEIGHT)
-    # view = MovingViewer(move_speed=5, mouse_sentitive=0.1, width=WIN_WIDTH, height=WIN_HEIGHT)
-    view = MultiplesView(
-        vert_shader="multiple_cams.vert",
-        frag_shader="multiple_cams.frag",
-        move_speed=5, 
-        mouse_sentitive=0.1,
-        width=WIN_WIDTH, height=WIN_HEIGHT,
-        cameras=[Camera(WIN_WIDTH / WIN_HEIGHT)],
-        generate_default_camera=True
-    )
+    view = RotatingViewer(width=WIN_WIDTH, height=WIN_HEIGHT)
+
+    # view = MovingViewer(
+    #     move_speed=5, 
+    #     mouse_sentitive=0.1, 
+    #     width=WIN_WIDTH, 
+    #     height=WIN_HEIGHT
+    # )
+
+    # view = MultiplesView(
+    #     vert_shader="multiple_cams.vert",
+    #     frag_shader="multiple_cams.frag",
+    #     move_speed=5, 
+    #     mouse_sentitive=0.1,
+    #     width=WIN_WIDTH, height=WIN_HEIGHT,
+    #     cameras=[Camera(WIN_WIDTH / WIN_HEIGHT)],
+    #     generate_default_camera=True
+    # )
 
     # model = Triangle(
     #     vert_shader="triangle/triangle.vert",
@@ -64,15 +71,15 @@ if __name__ == "__main__":
     #     frag_shader="line_segment/line_segment.frag"
     # )
 
-    model = Tetrahedron(
-        vert_shader="tetrahedron/tetrahedron.vert",
-        frag_shader="tetrahedron/tetrahedron.frag"
-    )
-
-    # model = Cube(
-    #     vert_shader="cube/cube.vert",
-    #     frag_shader="cube/cube.frag"
+    # model = Tetrahedron(
+    #     vert_shader="tetrahedron/tetrahedron.vert",
+    #     frag_shader="tetrahedron/tetrahedron.frag"
     # )
+
+    model = Cube(
+        vert_shader="cube/cube.vert",
+        frag_shader="cube/cube.frag"
+    )
 
     # model = Sphere(
     #     vert_shader="sphere/sphere.vert",
@@ -111,7 +118,6 @@ if __name__ == "__main__":
     #     frag_shader='model/model1.frag',
     #     texture_path='model/Liberty-Pavimentazione-1.bmp'
     # )
-    # model.setup()
 
     view.add(model)
     view.run()

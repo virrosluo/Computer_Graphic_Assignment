@@ -36,8 +36,6 @@ class Cylinder(ModelAbstract):
 
         # Initialize VAO and shader
         super().__init__(vert_shader, frag_shader)
-        self.vao_top = VAO()
-        self.vao_bottom = VAO()
 
     def generate_vertices(self):
         """
@@ -92,6 +90,10 @@ class Cylinder(ModelAbstract):
         """
         Set up the OpenGL buffers and shaders.
         """
+        super().setup()
+        self.vao_top = VAO()
+        self.vao_bottom = VAO()
+
         # Setup vertex buffer for the cylinder vertices
         self.vao.add_vbo(0, self.vertices, ncomponents=3, dtype=GL.GL_FLOAT, normalized=False, stride=0, offset=None)
         self.vao_top.add_vbo(0, self.top_vertices, ncomponents=3, dtype=GL.GL_FLOAT, normalized=False, stride=0, offset=None)
@@ -121,6 +123,9 @@ class Cylinder(ModelAbstract):
         """
         self.vao.activate()
         GL.glUseProgram(self.shader.render_idx)
+
+        projection = T.perspective(fovy=kwargs["fovy"], aspect=kwargs["aspect"], near=kwargs["near"], far=kwargs["far"])
+        self.uma.upload_uniform_matrix4fv(projection, "projection", True)
 
         # Create a rotation matrix based on angles
         modelview = self.get_view_matrix(**kwargs)

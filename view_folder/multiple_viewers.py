@@ -1,13 +1,15 @@
 import glfw
 import copy
+import glfw.GLFW
 import numpy as np
 import OpenGL.GL as GL
+import glfw.GLFW as GLFW_CONSTANTS
 from typing import List
 from model_interface import ModelAbstract
 from libs.transform import perspective, lookat, normalized, vec, ortho
 
 FRAME_PER_SECOND = 1 / 60.0
-
+3
 class Camera:
     def __init__(
             self, 
@@ -155,11 +157,12 @@ class MultiplesView:
             generate_default_camera=True
         ):
 
-        glfw.window_hint(glfw.CONTEXT_VERSION_MAJOR, 3)
-        glfw.window_hint(glfw.CONTEXT_VERSION_MINOR, 3)
-        glfw.window_hint(glfw.OPENGL_FORWARD_COMPAT, GL.GL_TRUE)
-        glfw.window_hint(glfw.OPENGL_PROFILE, glfw.OPENGL_CORE_PROFILE)
-        glfw.window_hint(glfw.RESIZABLE, False)
+        glfw.window_hint(GLFW_CONSTANTS.GLFW_CONTEXT_VERSION_MAJOR, 4)
+        glfw.window_hint(GLFW_CONSTANTS.GLFW_CONTEXT_VERSION_MINOR, 3)
+        glfw.window_hint(GLFW_CONSTANTS.GLFW_OPENGL_PROFILE, GLFW_CONSTANTS.GLFW_OPENGL_CORE_PROFILE)
+        glfw.window_hint(GLFW_CONSTANTS.GLFW_OPENGL_FORWARD_COMPAT, GL.GL_TRUE)
+        # glfw.window_hint(glfw.DECORATED, GL.GL_TRUE)
+        # glfw.window_hint(glfw.RESIZABLE, GL.GL_FALSE)
         
         self.main_win = glfw.create_window(width, height, "Main View", None, None)
         self.camera_win = glfw.create_window(width, height, "Camera View", None, None)

@@ -71,14 +71,13 @@ class ObjModel1(ModelAbstract):
         return texture_id
 
     def setup(self):
+        super().setup()
+
         self.vao.add_vbo(0, self.vertices, ncomponents=3, dtype=GL.GL_FLOAT, normalized=False, stride=0, offset=None)
         self.vao.add_vbo(1, self.colors, ncomponents=3, dtype=GL.GL_FLOAT, normalized=False, stride=0, offset=None)
         self.vao.add_vbo(2, self.texcoords, ncomponents=2, dtype=GL.GL_FLOAT, normalized=False, stride=0, offset=None)
 
         GL.glUseProgram(self.shader.render_idx)
-
-        projection = T.ortho(-20, 20, -20, 20, -20, 20)
-        self.uma.upload_uniform_matrix4fv(projection, "projection", True)
 
         # Bind the texture
         self.texture_id = self.load_texture(self.texture_path)
@@ -87,6 +86,9 @@ class ObjModel1(ModelAbstract):
     def draw(self, **kwargs):
         self.vao.activate()
         GL.glUseProgram(self.shader.render_idx)
+
+        projection = T.perspective(fovy=kwargs["fovy"], aspect=kwargs["aspect"], near=kwargs["near"], far=kwargs["far"])
+        self.uma.upload_uniform_matrix4fv(projection, "projection", True)
 
         # Apply rotation transformations
         modelview = self.get_view_matrix(**kwargs)
