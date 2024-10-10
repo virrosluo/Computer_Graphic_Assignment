@@ -27,7 +27,7 @@ if __name__ == "__main__":
         raise Exception("Failed to initialize GLFW")
 
     # view = Viewer(width=WIN_WIDTH, height=WIN_HEIGHT)
-    view = RotatingViewer(width=WIN_WIDTH, height=WIN_HEIGHT)
+    # view = RotatingViewer(width=WIN_WIDTH, height=WIN_HEIGHT)
 
     # view = MovingViewer(
     #     move_speed=5, 
@@ -36,15 +36,14 @@ if __name__ == "__main__":
     #     height=WIN_HEIGHT
     # )
 
-    # view = MultiplesView(
-    #     vert_shader="multiple_cams.vert",
-    #     frag_shader="multiple_cams.frag",
-    #     move_speed=5, 
-    #     mouse_sentitive=0.1,
-    #     width=WIN_WIDTH, height=WIN_HEIGHT,
-    #     cameras=[Camera(WIN_WIDTH / WIN_HEIGHT)],
-    #     generate_default_camera=True
-    # )
+    view = MultiplesView(
+        vert_shader="multiple_cams.vert",
+        frag_shader="multiple_cams.frag",
+        move_speed=5, 
+        mouse_sentitive=0.1,
+        width=WIN_WIDTH * 2, height=WIN_HEIGHT,
+        cameras=[Camera(WIN_WIDTH / WIN_HEIGHT)],
+    )
 
     # model = Triangle(
     #     vert_shader="triangle/triangle.vert",
