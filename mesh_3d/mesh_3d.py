@@ -33,32 +33,31 @@ class Mesh3D(ModelAbstract):
         x_values = np.linspace(x_min, x_max, resolution)
         y_values = np.linspace(y_min, y_max, resolution)
 
-        vertices = []
-        colors = []
-        indices = []
+        X, Y = np.meshgrid(x_values, y_values)
+        Z = func(X, Y)
 
-        # Generate vertices and colors based on function
-        for i, x in enumerate(x_values):
-            for j, y in enumerate(y_values):
-                z = func(x, y)  # Get z value from function
-                vertices.append([x, y, z])
-                
-                # Color based on the height (z value)
-                color_intensity = (z - min(x_values)) / (max(x_values) - min(x_values))
-                colors.append([color_intensity, 0.0, 1.0 - color_intensity])
+        vertices = np.column_stack((X.flatten(), Y.flatten(), Z.flatten()))
+        
+        z_min = np.min(Z)
+        z_max = np.max(Z)
+        color_intensities = (Z - z_min) / (z_max - z_min)
+        colors = np.column_stack((color_intensities.flatten(), 
+                                np.zeros_like(color_intensities.flatten()), 
+                                1.0 - color_intensities.flatten()))
 
-        for i in range(resolution - 1):
-            for j in range(resolution - 1):
-                top_left = i * resolution + j
-                top_right = top_left + 1
-                bottom_left = (i + 1) * resolution + j
-                bottom_right = bottom_left + 1
+        vertex_indices = np.arange(resolution * resolution).reshape((resolution, resolution))
 
-                # Add two triangles to form a quad
-                indices.extend([top_left, bottom_left, top_right])
-                indices.extend([top_right, bottom_left, bottom_right])
+        top_left_indices = vertex_indices[:-1, :-1].flatten()
+        top_right_indices = vertex_indices[:-1, 1:].flatten()
+        bottom_left_indices = vertex_indices[1:, :-1].flatten()
+        bottom_right_indices = vertex_indices[1:, 1:].flatten()
 
-        return np.array(vertices, dtype=np.float32), np.array(indices, dtype=np.int32), np.array(colors, dtype=np.float32)
+        triangle_1 = np.column_stack((top_left_indices, bottom_left_indices, top_right_indices))
+        triangle_2 = np.column_stack((top_right_indices, bottom_left_indices, bottom_right_indices))
+
+        indices = np.vstack((triangle_1, triangle_2)).flatten()
+
+        return np.asarray(vertices, dtype=np.float32), np.asarray(indices, dtype=np.int32), np.asarray(colors, dtype=np.float32)
 
     def setup(self):
         """

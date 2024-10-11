@@ -17,6 +17,7 @@ from view_folder.rotating_viewer import RotatingViewer
 from view_folder.multiple_viewers import MultiplesView, Camera
 
 import glfw
+import numpy as np
 
 WIN_WIDTH = 640
 WIN_HEIGHT = 480
@@ -75,10 +76,10 @@ if __name__ == "__main__":
     #     frag_shader="tetrahedron/tetrahedron.frag"
     # )
 
-    model = Cube(
-        vert_shader="cube/cube.vert",
-        frag_shader="cube/cube.frag"
-    )
+    # model = Cube(
+    #     vert_shader="cube/cube.vert",
+    #     frag_shader="cube/cube.frag"
+    # )
 
     # model = Sphere(
     #     vert_shader="sphere/sphere.vert",
@@ -95,15 +96,15 @@ if __name__ == "__main__":
     #     height=2
     # )
 
-    # model = Mesh3D(
-    #     vert_shader="mesh_3d/mesh.vert",
-    #     frag_shader="mesh_3d/mesh.frag",
-    #     func=lambda x, y: x**2 + y**2,
-    #     # func=lambda x, y: math.cos(x**2 + y) + math.sin(y**2 + x),
-    #     x_range=(-1.0, 1.0),
-    #     y_range=(-1.0, 1.0),
-    #     resolution=50
-    # )
+    model = Mesh3D(
+        vert_shader="mesh_3d/mesh.vert",
+        frag_shader="mesh_3d/mesh.frag",
+        # func=lambda x, y: x**2 + y**2,
+        func=lambda x, y: np.cos(x**2 + y) + np.sin(y**2 + x),
+        x_range=(-1.0, 1.0),
+        y_range=(-1.0, 1.0),
+        resolution=50
+    )
 
     # model = ObjModel(
     #     model_path='model/cottage_obj.obj', 

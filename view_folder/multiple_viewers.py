@@ -49,6 +49,12 @@ class Camera:
             np.sin(np.radians(self.pitch)),
             np.sin(np.radians(self.yaw)) * np.cos(np.radians(self.pitch))
         ], dtype=np.float32)
+
+    def zoom_in(self):
+        self.fov += 10 * FRAME_PER_SECOND
+
+    def zoom_out(self):
+        self.fov -= 10 * FRAME_PER_SECOND
     
     def forward(self):
         self.position += self.move_speed * self.front * FRAME_PER_SECOND
@@ -223,7 +229,7 @@ class MultiplesView:
                     far=active_camera.far
                 )
 
-            GL.glPolygonMode(GL.GL_FRONT_AND_BACK, GL.GL_LINE)
+            GL.glPolygonMode(GL.GL_FRONT_AND_BACK, GL.GL_FILL)
             for view_obj in self.view_objs[1:]:
                 view_obj.draw(
                     camera_pos=active_camera.position,
@@ -280,6 +286,13 @@ class MultiplesView:
             current_camera.go_right()
         self.update_camview_obj()
 
+    def zoom(self, key):
+        current_camera = self.cameras[self.active_camera_idx]
+        if key == glfw.KEY_Y:
+            current_camera.zoom_in()
+        elif key == glfw.KEY_H:
+            current_camera.zoom_out()
+
     def on_mouse_move(self, _win, xpos, ypos):
         if self.first_mouse:
             self.last_x = xpos
@@ -303,10 +316,11 @@ class MultiplesView:
     def on_key(self, _win, key, _scancode, action, _mods):
         """ 'Q' or 'Escape' quits """
         if action == glfw.PRESS or action == glfw.REPEAT:
-            if key == glfw.KEY_ESCAPE or key == glfw.KEY_Q:
+            if key == glfw.KEY_ESCAPE:
                 glfw.set_window_should_close(self.win, True)
 
             self.move(key=key)
+            self.zoom(key=key)
             self.swap_camera(key=key)
 
             for drawable in self.drawables:
