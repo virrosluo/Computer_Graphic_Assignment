@@ -229,7 +229,7 @@ class MultiplesView:
                     far=active_camera.far
                 )
 
-            GL.glPolygonMode(GL.GL_FRONT_AND_BACK, GL.GL_FILL)
+            GL.glPolygonMode(GL.GL_FRONT_AND_BACK, GL.GL_LINE)
             for view_obj in self.view_objs[1:]:
                 view_obj.draw(
                     camera_pos=active_camera.position,

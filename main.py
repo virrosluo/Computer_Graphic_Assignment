@@ -17,7 +17,7 @@ from view_folder.rotating_viewer import RotatingViewer
 from view_folder.multiple_viewers import MultiplesView, Camera
 
 import glfw
-import numpy as np
+import torch
 
 WIN_WIDTH = 640
 WIN_HEIGHT = 480
@@ -99,11 +99,12 @@ if __name__ == "__main__":
     model = Mesh3D(
         vert_shader="mesh_3d/mesh.vert",
         frag_shader="mesh_3d/mesh.frag",
-        # func=lambda x, y: x**2 + y**2,
-        func=lambda x, y: np.cos(x**2 + y) + np.sin(y**2 + x),
+        func=lambda x, y: x**2 + y**2,
+        # func=lambda x, y: torch.cos(x**2 + y) + torch.sin(y**2 + x),
         x_range=(-1.0, 1.0),
         y_range=(-1.0, 1.0),
-        resolution=50
+        resolution=50,
+        lr=0.00001,
     )
 
     # model = ObjModel(

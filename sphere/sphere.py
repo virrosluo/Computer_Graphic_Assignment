@@ -21,16 +21,15 @@ class Sphere(ModelAbstract):
         vertices = []
         for i in range(self.N + 1):
             phi = np.pi / 2 - i * phi_step
-            z = np.sin(phi)
+            z = np.sin(phi) * self.r
             for j in range(self.N + 1):
                 theta = j * theta_step
-                x = np.cos(phi) * np.cos(theta)
-                y = np.cos(phi) * np.sin(theta)
+                x = np.cos(phi) * np.cos(theta) * self.r
+                y = np.cos(phi) * np.sin(theta) * self.r
                 vertices.append([x, y, z])
 
         return np.array(vertices, dtype=np.float32)
 
-    
     def generate_triangle_strip_indices(self, N):
         indices = []
         k1, k2 = 0, 0
@@ -65,8 +64,6 @@ class Sphere(ModelAbstract):
         self.vao.add_vbo(1, self.colors, ncomponents=3, dtype=GL.GL_FLOAT, normalized=False, stride=0, offset=None)
 
         self.vao.add_ebo(self.indices)
-
-        GL.glUseProgram(self.shader.render_idx)
 
     def draw(self, **kwargs):
         self.vao.activate()
