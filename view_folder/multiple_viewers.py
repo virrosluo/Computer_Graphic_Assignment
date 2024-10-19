@@ -210,9 +210,10 @@ class MultiplesView:
 
     def run(self):
         while not glfw.window_should_close(self.win):
-            GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
             # --------------------------------------------------------------- MAIN VIEWPORT
             GL.glViewport(0, 0, self.width // 2, self.height)
+            GL.glScissor(0, 0, self.width // 2, self.height)
+            GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
             
             active_camera = self.cameras[0]
             active_camera.update_camera_status()
@@ -243,6 +244,8 @@ class MultiplesView:
 
             # --------------------------------------------------------------- CAMERA VIEWPORT
             GL.glViewport(self.width // 2, 0, self.width // 2, self.height)
+            GL.glScissor(self.width // 2, 0, self.width // 2, self.height)
+            GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
 
             active_camera = self.cameras[self.active_camera_idx]
             active_camera.update_camera_status()
@@ -326,3 +329,10 @@ class MultiplesView:
             for drawable in self.drawables:
                 if hasattr(drawable, 'key_handler'):
                     drawable.key_handler(key)
+
+
+# Experience: 
+#     When we use glViewport: It will make the screen will "RENDER" on specific area of the windows
+#     When we use glScissor: It will make "ALL ACTIONS" will only act on specific area of the windows 
+#     (Imagine: Only one part of the matrix can be modify, the other parts will not be modified)
+#     => So when we turn on GL.glScissor and just clear at the beginning of frame => it will only clear the CAMERA VIEWPORT, not MAIN VIEWPORT
