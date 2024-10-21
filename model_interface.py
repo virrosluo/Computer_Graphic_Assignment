@@ -13,7 +13,7 @@ class ModelAbstract:
         self.uma = UManager(self.shader)
 
     def get_view_matrix(self, **kwargs):
-        modelview = T.lookat(eye=kwargs["camera_pos"], target=kwargs["camera_front"], up=kwargs["camera_up"])
+        modelview = T.lookat(eye=kwargs["camera_pos"], target=kwargs["camera_pos"] + kwargs["camera_front"], up=kwargs["camera_up"])
         return modelview
     
     # def get_view_matrix(self, **kwargs):
