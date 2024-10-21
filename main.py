@@ -43,7 +43,10 @@ if __name__ == "__main__":
         move_speed=5, 
         mouse_sentitive=0.1,
         width=WIN_WIDTH * 2, height=WIN_HEIGHT,
-        cameras=[Camera(position=[0, 0, 5], aspect_ratio=WIN_WIDTH / WIN_HEIGHT, far=10)],
+        cameras=[
+            Camera(position=[0, 0, 5], aspect_ratio=WIN_WIDTH / WIN_HEIGHT, far=10),
+            Camera(position=[0, 0, 10], aspect_ratio=WIN_WIDTH / WIN_HEIGHT, far=10),
+        ],
     )
 
     # model = Triangle(

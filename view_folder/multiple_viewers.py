@@ -80,9 +80,9 @@ class Camera:
         #     self.pitch = -85
 
 class VirtualScreen(ModelAbstract):
-    def __init__(self, vert_shader, frag_shader, width, height):
+    def __init__(self, vert_shader, frag_shader, camera, frame, width, height):
         super().__init__(vert_shader, frag_shader)
-
+        self.camera = camera
         self.texcoords = np.array([
             [0, 1],
             [1, 1],
@@ -91,6 +91,7 @@ class VirtualScreen(ModelAbstract):
         ], dtype=np.float32)
 
         self.indices = np.array([0, 1, 2, 2, 1, 3], dtype=np.int32)
+        self.frame = frame
 
         self.texture = GL.glGenTextures(1)
         GL.glBindTexture(GL.GL_TEXTURE_2D, self.texture)
@@ -98,27 +99,27 @@ class VirtualScreen(ModelAbstract):
         GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MIN_FILTER, GL.GL_LINEAR)
         GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MAG_FILTER, GL.GL_LINEAR)
 
-    def setup(self, camera: Camera):
+    def setup(self):
         super().setup()
 
-        vertices = self.get_rect_vertices(camera)
+        vertices = self.get_rect_vertices()
         self.vao.add_vbo(0, vertices, ncomponents=3, dtype=GL.GL_FLOAT, normalized=False, stride=0, offset=None, draw_type=GL.GL_DYNAMIC_DRAW)
         self.vao.add_vbo(1, self.texcoords, ncomponents=2, dtype=GL.GL_FLOAT, normalized=False, stride=0, offset=None)
         self.vao.add_ebo(indices=self.indices)
 
-    def get_rect_vertices(self, camera_info: Camera):
+    def get_rect_vertices(self):
         distance = 0.5
 
-        camera_right = np.cross(camera_info.front, camera_info.up)
+        camera_right = np.cross(self.camera.front, self.camera.up)
         camera_right /= np.linalg.norm(camera_right)
 
-        camera_up = np.cross(camera_right, camera_info.front)
+        camera_up = np.cross(camera_right, self.camera.front)
         camera_up /= np.linalg.norm(camera_up)
 
-        base_height = np.tan(np.radians(camera_info.fov)) * distance
-        base_width = base_height * camera_info.aspect_ratio
+        base_height = np.tan(np.radians(self.camera.fov)) * distance
+        base_width = base_height * self.camera.aspect_ratio
 
-        base_center = camera_info.position + camera_info.front * distance
+        base_center = self.camera.position + self.camera.front * distance
         
         half_width = base_width
         half_height = base_height
@@ -135,8 +136,8 @@ class VirtualScreen(ModelAbstract):
             base_bottom_right
         ], dtype=np.float32)
 
-    def update_view_object(self, camera: Camera):
-        vertices = self.get_rect_vertices(camera)
+    def update_view_object(self):
+        vertices = self.get_rect_vertices()
         GL.glBindBuffer(GL.GL_ARRAY_BUFFER, self.vao.vbo[0])
         GL.glBufferSubData(GL.GL_ARRAY_BUFFER, 0, vertices.nbytes, vertices)
 
@@ -144,7 +145,7 @@ class VirtualScreen(ModelAbstract):
         self.vao.activate()
         GL.glUseProgram(self.shader.render_idx)
 
-        self.update_view_object(kwargs["camera"])
+        self.update_view_object()
 
         projection = perspective(fovy=kwargs["fovy"], aspect=kwargs["aspect"], near=kwargs["near"], far=kwargs["far"])
         self.uma.upload_uniform_matrix4fv(projection, "projection", True)
@@ -152,7 +153,7 @@ class VirtualScreen(ModelAbstract):
         modelview = self.get_view_matrix(**kwargs)
         self.uma.upload_uniform_matrix4fv(modelview, "modelview", True)
 
-        GL.glBindFramebuffer(GL.GL_FRAMEBUFFER, kwargs["fbo"])
+        GL.glBindFramebuffer(GL.GL_FRAMEBUFFER, self.frame)
         GL.glFramebufferTexture2D(GL.GL_FRAMEBUFFER, GL.GL_COLOR_ATTACHMENT0, GL.GL_TEXTURE_2D, self.texture, 0)
 
         # Bind the texture before drawing
@@ -280,17 +281,23 @@ class MultiplesView:
             mouse_sentitive=mouse_sentitive
         )] + cameras
 
-        self.view_objs = [CameraViewObj(vert_shader=vert_shader, frag_shader=frag_shader, camera_info=camera) for camera in self.cameras]
-        for view_obj in self.view_objs:
-            view_obj.setup()
+        self.view_objs = []
+        for camera in self.cameras:
+            camera_view_obj = CameraViewObj(vert_shader=vert_shader, frag_shader=frag_shader, camera_info=camera)
+            camera_view_obj.setup()
+            self.view_objs.append(camera_view_obj)
 
-        self.virtual_scene = VirtualScreen(
-            "view_folder/virtual_scene.vert", 
-            "view_folder/virtual_scene.frag", 
-            width // 2, 
-            height
-        )
-        self.virtual_scene.setup(self.cameras[1])
+        self.frame_buffers, self.render_buffers = self.init_fbo()
+
+        self.virtual_scenes = []
+        for camera, frame in zip(self.cameras, self.frame_buffers):
+            virtual_scene = VirtualScreen(
+                vert_shader="view_folder/virtual_scene.vert", 
+                frag_shader="view_folder/virtual_scene.frag", 
+                camera=camera, width=width // 2, height=height, frame=frame)
+            virtual_scene.setup()
+            self.virtual_scenes.append(virtual_scene)
+
         
         self.drawables =[]
 
@@ -302,48 +309,56 @@ class MultiplesView:
         self.move_speed = move_speed * FRAME_PER_SECOND
         self.mouse_sensitive = mouse_sentitive
 
-        # Create a Framebuffer Object (FBO)
-        self.fbo = GL.glGenFramebuffers(1)
-        GL.glBindFramebuffer(GL.GL_FRAMEBUFFER, self.fbo)
-
-        # Attach the texture to the framebuffer
-        GL.glFramebufferTexture2D(GL.GL_FRAMEBUFFER, GL.GL_COLOR_ATTACHMENT0, GL.GL_TEXTURE_2D, self.virtual_scene.texture, 0)
-
-        # Create and attach a renderbuffer for depth buffering
-        rbo = GL.glGenRenderbuffers(1)
-        GL.glBindRenderbuffer(GL.GL_RENDERBUFFER, rbo)
-        GL.glRenderbufferStorage(GL.GL_RENDERBUFFER, GL.GL_DEPTH24_STENCIL8, width // 2, height)
-        GL.glFramebufferRenderbuffer(GL.GL_FRAMEBUFFER, GL.GL_DEPTH_STENCIL_ATTACHMENT, GL.GL_RENDERBUFFER, rbo)
-
         GL.glBindFramebuffer(GL.GL_FRAMEBUFFER, 0)
+
+    def init_fbo(self):
+        frame_buffers = GL.glGenFramebuffers(len(self.cameras))
+        render_buffers = GL.glGenRenderbuffers(len(self.cameras))
+        for frame, render in zip(frame_buffers, render_buffers):
+            GL.glBindFramebuffer(GL.GL_FRAMEBUFFER, frame)
+
+            # Create and attach a renderbuffer for depth buffering
+            GL.glBindRenderbuffer(GL.GL_RENDERBUFFER, render)
+            GL.glRenderbufferStorage(GL.GL_RENDERBUFFER, GL.GL_DEPTH24_STENCIL8, self.width // 2, self.height)
+            GL.glFramebufferRenderbuffer(GL.GL_FRAMEBUFFER, GL.GL_DEPTH_STENCIL_ATTACHMENT, GL.GL_RENDERBUFFER, render)
+        
+        GL.glBindFramebuffer(GL.GL_FRAMEBUFFER, 0)
+        GL.glBindRenderbuffer(GL.GL_RENDERBUFFER, 0)
+
+        return frame_buffers, render_buffers
 
     def run(self):
         while not glfw.window_should_close(self.win):
-            # --------------------------------------------------------------- CAMERA VIEWPORT
-            GL.glBindFramebuffer(GL.GL_FRAMEBUFFER, self.fbo)
-            GL.glViewport(0, 0, self.width // 2, self.height)
-            GL.glScissor(0, 0, self.width, self.height)
-            GL.glClearColor(0.8, 0.8, 0.8, 0.5)
-            GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
+            for camera in self.cameras:
+                camera.update_camera_status()
+            # --------------------------------------------------------------- CAMERA VIEWPORT RENDERING
 
-            viewport_camera = self.cameras[max(1, self.active_camera_idx)]
-            viewport_camera.update_camera_status()
+            for camera, frame in zip(self.cameras, self.frame_buffers):
+                GL.glBindFramebuffer(GL.GL_FRAMEBUFFER, frame)
+                GL.glViewport(0, 0, self.width // 2, self.height)
+                GL.glScissor(0, 0, self.width, self.height)
+                GL.glClearColor(0.8, 0.8, 0.8, 0.5)
+                GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
 
-            # Draw the same objects in the second viewport
-            GL.glPolygonMode(GL.GL_FRONT_AND_BACK, GL.GL_FILL)
-            for drawable in self.drawables:
-                drawable.draw(
-                    camera_pos=viewport_camera.position,
-                    camera_front=viewport_camera.front, 
-                    camera_up=viewport_camera.up,
-                    fovy=viewport_camera.fov,
-                    aspect=viewport_camera.aspect_ratio,
-                    near=viewport_camera.near,
-                    far=viewport_camera.far
-                )
+                # Draw the same objects in the second viewport
+                GL.glPolygonMode(GL.GL_FRONT_AND_BACK, GL.GL_FILL)
+                for drawable in self.drawables:
+                    drawable.draw(
+                        camera_pos=camera.position,
+                        camera_front=camera.front, 
+                        camera_up=camera.up,
+                        fovy=camera.fov,
+                        aspect=camera.aspect_ratio,
+                        near=camera.near,
+                        far=camera.far
+                    )
 
             # --------------------------------------------------------------- BLIT FBO
-            GL.glBindFramebuffer(GL.GL_READ_FRAMEBUFFER, self.fbo)
+            GL.glBindFramebuffer(GL.GL_FRAMEBUFFER, 0)
+            GL.glClearColor(0.0, 0.0, 0.0, 0.5)
+            GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
+
+            GL.glBindFramebuffer(GL.GL_READ_FRAMEBUFFER, self.frame_buffers[self.active_camera_idx])
             GL.glBindFramebuffer(GL.GL_DRAW_FRAMEBUFFER, 0)
 
             # Copying the left side of the framebuffer to right side of the screen buffer
@@ -389,17 +404,19 @@ class MultiplesView:
 
             # --------------------------------------------------------------- VIRTUAL SCENE
             GL.glPolygonMode(GL.GL_FRONT_AND_BACK, GL.GL_FILL)
-            self.virtual_scene.draw(
-                camera=viewport_camera,
-                fbo=self.fbo,
-                camera_pos=active_camera.position,
-                camera_front=active_camera.front, 
-                camera_up=active_camera.up,
-                fovy=active_camera.fov,
-                aspect=active_camera.aspect_ratio,
-                near=active_camera.near,
-                far=active_camera.far
-            )
+            for index, virtual_scene in enumerate(self.virtual_scenes):
+                if index == 0:
+                    continue
+                else:
+                    virtual_scene.draw(
+                        camera_pos=active_camera.position,
+                        camera_front=active_camera.front, 
+                        camera_up=active_camera.up,
+                        fovy=active_camera.fov,
+                        aspect=active_camera.aspect_ratio,
+                        near=active_camera.near,
+                        far=active_camera.far
+                    )
 
             # --------------------------------------------------------------- POLL EVENTS AND SWAP BUFFERS
             glfw.swap_buffers(self.win)
