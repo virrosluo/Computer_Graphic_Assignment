@@ -52,12 +52,13 @@ class Mesh3D(ModelAbstract):
 
         self.vertices, self.indices, self.colors = self.generate_mesh(func, x_range, y_range, resolution)
 
-        self.sphere_obj = SphereObj(vert=vert_shader, frag=frag_shader, r=0.5, N=20)
+        self.sphere_obj = SphereObj(vert=vert_shader, frag=frag_shader, r=0.2, N=20)
 
         self.func = func
         self.lr = lr
 
-        init_vars = [random.uniform(x_range[0], x_range[1]), random.uniform(y_range[0], y_range[1])]
+        # init_vars = [random.uniform(-1, 1), random.uniform(-1, 1)]
+        init_vars = [0.5, 0]
         self.positions = [init_vars]
         self.variables = torch.tensor(
             init_vars, 
@@ -124,7 +125,7 @@ class Mesh3D(ModelAbstract):
         """
         Draw the mesh using OpenGL.
         """
-
+        self.variables.grad = None
         z = self.func(self.variables[0], self.variables[1])
         z.backward()
 

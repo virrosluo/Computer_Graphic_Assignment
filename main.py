@@ -44,8 +44,8 @@ if __name__ == "__main__":
         mouse_sentitive=0.1,
         width=WIN_WIDTH * 2, height=WIN_HEIGHT,
         cameras=[
-            Camera(position=[0, 0, 5], aspect_ratio=WIN_WIDTH / WIN_HEIGHT, far=10),
-            Camera(position=[0, 0, 10], aspect_ratio=WIN_WIDTH / WIN_HEIGHT, far=10),
+            Camera(position=[0, 0, 5], aspect_ratio=WIN_WIDTH / WIN_HEIGHT, far=30),
+            Camera(position=[0, 0, 10], aspect_ratio=WIN_WIDTH / WIN_HEIGHT, far=30),
         ],
     )
 
@@ -102,12 +102,12 @@ if __name__ == "__main__":
     model = Mesh3D(
         vert_shader="mesh_3d/mesh.vert",
         frag_shader="mesh_3d/mesh.frag",
-        func=lambda x, y: x**2 + y**2,
-        # func=lambda x, y: torch.cos(x**2 + y) + torch.sin(y**2 + x),
-        x_range=(-1.0, 1.0),
-        y_range=(-1.0, 1.0),
+        # func=lambda x, y: x**2 + y**2,
+        func=lambda x, y: torch.sin(3*x) + torch.cos(3*y) + 1,
+        x_range=(-5, 5),
+        y_range=(-5, 5),
         resolution=50,
-        lr=0.00001,
+        lr=0.0001,
     )
 
     # model = ObjModel(
