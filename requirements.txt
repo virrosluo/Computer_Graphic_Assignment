@@ -1,0 +1,8 @@
+numpy
+PyOpenGL
+pandas
+opencv-python
+torch
+tinyobjloader==2.0.0rc7
+pillow
+glfw
