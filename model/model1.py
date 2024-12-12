@@ -98,5 +98,4 @@ class ObjModel1(ModelAbstract):
         GL.glActiveTexture(GL.GL_TEXTURE0)
         GL.glBindTexture(GL.GL_TEXTURE_2D, self.texture_id)
         GL.glUniform1i(GL.glGetUniformLocation(self.shader.render_idx, "textureSampler"), 0)
-
         GL.glDrawArrays(GL.GL_TRIANGLES, 0, len(self.vertices))

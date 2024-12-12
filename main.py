@@ -38,8 +38,8 @@ if __name__ == "__main__":
     # )
 
     view = MultiplesView(
-        vert_shader="multiple_cams.vert",
-        frag_shader="multiple_cams.frag",
+        vert_shader="multiple_cams_normal.vert",
+        frag_shader="multiple_cams_normal.frag",
         move_speed=5, 
         mouse_sentitive=0.1,
         width=WIN_WIDTH * 2, height=WIN_HEIGHT,
@@ -100,8 +100,10 @@ if __name__ == "__main__":
     # )
 
     model = Mesh3D(
-        vert_shader="mesh_3d/mesh.vert",
-        frag_shader="mesh_3d/mesh.frag",
+        # vert_shader="mesh_3d/mesh.vert",
+        # frag_shader="mesh_3d/mesh.frag",
+        vert_shader="multiple_cams_depth.vert",
+        frag_shader="multiple_cams_depth.frag",
         # func=lambda x, y: x**2 + y**2,
         func=lambda x, y: torch.sin(3*x) + torch.cos(3*y) + 1,
         x_range=(-5, 5),

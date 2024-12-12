@@ -147,6 +147,9 @@ class Mesh3D(ModelAbstract):
         # Create rotation matrix based on angles
         modelview = self.get_view_matrix(**kwargs)
         self.uma.upload_uniform_matrix4fv(modelview, "modelview", True)
+        
+        self.uma.upload_uniform_vector3fv(kwargs["camera_pos"], "cameraPos")
+        self.uma.upload_uniform_scalar1f(kwargs["far"], "maxDistance")
 
         # Draw the mesh using triangles
         GL.glDrawElements(GL.GL_TRIANGLES, len(self.indices), GL.GL_UNSIGNED_INT, None)

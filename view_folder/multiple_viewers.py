@@ -1,4 +1,5 @@
 import glfw
+import cv2
 import copy
 import glfw.GLFW
 import numpy as np
@@ -83,6 +84,8 @@ class VirtualScreen(ModelAbstract):
     def __init__(self, vert_shader, frag_shader, camera, frame, width, height):
         super().__init__(vert_shader, frag_shader)
         self.camera = camera
+        self.width = width
+        self.height = height
         self.texcoords = np.array([
             [0, 1],
             [1, 1],
@@ -98,6 +101,16 @@ class VirtualScreen(ModelAbstract):
         GL.glTexImage2D(GL.GL_TEXTURE_2D, 0, GL.GL_RGB, width, height, 0, GL.GL_RGB, GL.GL_UNSIGNED_BYTE, None)
         GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MIN_FILTER, GL.GL_LINEAR)
         GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MAG_FILTER, GL.GL_LINEAR)
+        
+    def capture_color(self):
+        GL.glBindTexture(GL.GL_TEXTURE_2D, self.texture)
+        image = GL.glGetTexImage(GL.GL_TEXTURE_2D, 0, GL.GL_RGB, GL.GL_UNSIGNED_BYTE, None)
+        image = np.frombuffer(image, dtype=np.uint8)
+        image = image.reshape((self.height, self.width, 3))
+        image = cv2.flip(image, 0)
+        cv2.imwrite("color.png", cv2.cvtColor(image, cv2.COLOR_RGB2BGR))
+        print("Color image saved")
+        GL.glBindTexture(GL.GL_TEXTURE_2D, 0)
 
     def setup(self):
         super().setup()
@@ -152,6 +165,9 @@ class VirtualScreen(ModelAbstract):
 
         modelview = self.get_view_matrix(**kwargs)
         self.uma.upload_uniform_matrix4fv(modelview, "modelview", True)
+        
+        self.uma.upload_uniform_vector3fv(kwargs["camera_pos"], "cameraPos")
+        self.uma.upload_uniform_scalar1f(kwargs["far"], "maxDistance")
 
         GL.glBindFramebuffer(GL.GL_FRAMEBUFFER, self.frame)
         GL.glFramebufferTexture2D(GL.GL_FRAMEBUFFER, GL.GL_COLOR_ATTACHMENT0, GL.GL_TEXTURE_2D, self.texture, 0)
@@ -200,6 +216,9 @@ class CameraViewObj(ModelAbstract):
 
         projection = perspective(fovy=kwargs["fovy"], aspect=kwargs["aspect"], near=kwargs["near"], far=kwargs["far"])
         self.uma.upload_uniform_matrix4fv(projection, "projection", True)
+        
+        self.uma.upload_uniform_vector3fv(kwargs["camera_pos"], "cameraPos")
+        self.uma.upload_uniform_scalar1f(kwargs["far"], "maxDistance")
 
         modelview = self.get_view_matrix(**kwargs)
         self.uma.upload_uniform_matrix4fv(modelview, "modelview", True)
@@ -278,7 +297,8 @@ class MultiplesView:
         self.cameras: List[Camera] = [Camera(
             aspect_ratio=self.aspect_ratio,
             move_speed=move_speed,
-            mouse_sentitive=mouse_sentitive
+            mouse_sentitive=mouse_sentitive,
+            position=[5, 5, 5]
         )] + cameras
 
         self.view_objs = []
@@ -293,7 +313,7 @@ class MultiplesView:
         for camera, frame in zip(self.cameras, self.frame_buffers):
             virtual_scene = VirtualScreen(
                 vert_shader="view_folder/virtual_scene.vert", 
-                frag_shader="view_folder/virtual_scene.frag", 
+                frag_shader="view_folder/virtual_scene.frag",
                 camera=camera, width=width // 2, height=height, frame=frame)
             virtual_scene.setup()
             self.virtual_scenes.append(virtual_scene)
@@ -427,6 +447,10 @@ class MultiplesView:
         for obj in drawables:
             obj.setup()
             self.drawables.append(obj)
+            
+    def capture(self, key):
+        if key == glfw.KEY_C:
+            self.virtual_scenes[self.active_camera_idx].capture_color()
 
     def update_camview_obj(self):
         for view_obj in self.view_objs:
@@ -479,6 +503,7 @@ class MultiplesView:
 
             self.move(key=key)
             self.zoom(key=key)
+            self.capture(key=key)
             self.swap_camera(key=key)
 
             for drawable in self.drawables:
